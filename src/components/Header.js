@@ -1,10 +1,12 @@
+import { useEffect } from 'react';
 import styled from 'styled-components'
 import { auth, provider } from  "../firebase"
 import {signInWithPopup} from "firebase/auth"
 import {useNavigate} from 'react-router-dom';
 
-import {selectUserName, selectUserEmail, selectUserPhoto, setUserLoginDetails} from "../features/user/userSlice"
+import {selectUserName, selectUserPhoto, setUserLoginDetails, setSignOutState} from "../features/user/userSlice"
 import {useDispatch, useSelector} from "react-redux"
+import { async } from '@firebase/util';
 
 const Header = (props) =>{
 const dispatch = useDispatch()
@@ -12,14 +14,43 @@ const navigate = useNavigate();
 const userName = useSelector(selectUserName);
 const userPhoto = useSelector(selectUserPhoto);
 
+useEffect(()=>{
+  auth.onAuthStateChanged(async(user)=>{
+    if(user){
+      setUser(user)
+      navigate('/home')
+    }
+  })  	
+},[ userName]) 
 
-  const handleAuth = () =>{
-   signInWithPopup( auth, provider).then((result)=>{
-   setUser(result.user);
-    })
-    .cactch((error)=>{
-      alert(error.message)
-    })
+  // const handleAuth = () =>{
+  //  signInWithPopup( auth, provider).then((result)=>{
+  //  setUser(result.user);
+  //   })
+  //   .cactch((error)=>{
+  //     alert(error.message)
+  //   })
+  // };
+
+  const handleAuth = () => {
+    if (!userName) {
+      auth
+        .signInWithPopup(provider)
+        .then((result) => {
+          setUser(result.user);
+        })
+        .catch((error) => {
+          alert(error.message);
+        });
+    } else if (userName) {
+      auth
+        .signOut()
+        .then(() => {
+          dispatch(setSignOutState());
+          navigate("/");
+        })
+        .catch((err) => alert(err.message));
+    }
   };
 
   const setUser = (user) => {
